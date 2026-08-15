@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generatePitchDeckWithAI } from "@/lib/gemini";
 import { GenerateDeckRequest } from "@/types/pitch";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const body: GenerateDeckRequest = await req.json();

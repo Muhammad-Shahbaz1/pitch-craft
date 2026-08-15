@@ -20,14 +20,6 @@ export async function generatePitchDeckWithAI(params: GenerateDeckRequest): Prom
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7,
-      },
-    });
-
     const systemPrompt = `You are a world-class venture capitalist and pitch deck architect who has helped startups raise billions from top funds like Sequoia, a16z, and Y Combinator.
 Create a comprehensive, compelling, high-converting investor pitch deck for a startup.
 
@@ -204,7 +196,12 @@ Generate a JSON object strictly matching this TypeScript structure:
         });
 
         const result = await model.generateContent(systemPrompt);
-        const text = result.response.text();
+        let text = result.response.text().trim();
+        if (text.startsWith("```json")) {
+          text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        } else if (text.startsWith("```")) {
+          text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
         const parsed = JSON.parse(text);
 
         return {
