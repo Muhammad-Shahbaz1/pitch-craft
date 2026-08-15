@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "Pitch-Craft | AI Pitch Deck Builder & Presentation Studio",
   description: "Create, refine, present, and export high-converting investor pitch decks powered by Gemini AI.",
   keywords: ["pitch deck", "AI pitch deck generator", "startup funding", "investor presentation", "venture capital", "PowerPoint export"],
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "Pitch-Craft | AI Pitch Deck Builder",
     description: "Generate investor-ready pitch decks in seconds with Gemini AI.",
