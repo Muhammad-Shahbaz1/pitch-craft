@@ -39,7 +39,7 @@ export function Footer() {
 
             {/* LinkedIn */}
             <a
-              href="https://www.linkedin.com"
+              href="https://www.linkedin.com/in/muhammad-shahbaz-a74ba5249"
               target="_blank"
               rel="noopener noreferrer"
               title="LinkedIn - Muhammad Shahbaz"
@@ -50,7 +50,7 @@ export function Footer() {
 
             {/* WhatsApp */}
             <a
-              href="https://wa.me/"
+              href="https://wa.me/923417570902"
               target="_blank"
               rel="noopener noreferrer"
               title="WhatsApp - Muhammad Shahbaz"
