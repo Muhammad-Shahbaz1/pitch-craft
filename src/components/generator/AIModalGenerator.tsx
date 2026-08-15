@@ -138,186 +138,188 @@ export function AIModalGenerator({ isOpen, onClose }: AIModalGeneratorProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl rounded-2xl bg-[#0d1322] border border-slate-700/80 shadow-2xl p-6 sm:p-8 text-slate-100 my-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          disabled={loading}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-6">
+        <div className="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-slate-700/80 shadow-2xl p-6 sm:p-8 text-slate-900 dark:text-slate-100 my-6 sm:my-8 text-left transition-all">
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors z-10"
+          >
+            <X className="w-5 h-5" />
+          </button>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold font-display text-white">
-              AI Pitch Deck Architect
-            </h2>
-            <p className="text-sm text-slate-400">
-              Powered by Google Gemini 1.5. Generates a comprehensive, 10-slide investor-ready presentation.
-            </p>
-          </div>
-        </div>
-
-        {/* 1-Click Example Presets */}
-        <div className="my-5 p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
-            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-            Quick Presets:
-          </span>
-          {PRESET_IDEAS.map((preset) => (
-            <button
-              key={preset.name}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-sky-500/20 hover:text-sky-300 text-slate-300 border border-slate-700/60 transition-colors"
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Main Form */}
-        <form onSubmit={handleGenerate} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5 text-sky-400" /> Company / Project Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                placeholder="e.g. Synthetix AI"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
-              />
+          {/* Header */}
+          <div className="flex items-start gap-3.5 mb-2 pr-8">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0 mt-0.5">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-sky-400" /> Industry & Domain *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                placeholder="e.g. Enterprise AI, Fintech, HealthTech"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
-              />
+              <h2 className="text-2xl font-bold font-display text-slate-900 dark:text-white leading-tight">
+                AI Pitch Deck Architect
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Generates a comprehensive, 10-slide investor-ready presentation with market sizing and financials.
+              </p>
             </div>
           </div>
 
-          {/* Problem */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-rose-400" /> The Problem / Pain Point *
-            </label>
-            <textarea
-              required
-              rows={2}
-              value={formData.problemStatement}
-              onChange={(e) => setFormData({ ...formData, problemStatement: e.target.value })}
-              placeholder="What urgent, expensive problem does your customer face? (e.g. Sales reps waste 68% of their time on manual CRM data entry...)"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm resize-none"
-            />
-          </div>
-
-          {/* Solution */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Your Solution & Value Prop *
-            </label>
-            <textarea
-              required
-              rows={2}
-              value={formData.solutionStatement}
-              onChange={(e) => setFormData({ ...formData, solutionStatement: e.target.value })}
-              placeholder="How do you solve this 10x better? (e.g. An autonomous multi-agent pipeline that handles outbound qualification and proposal generation 24/7...)"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-sky-400" /> Traction or Key Metrics
-              </label>
-              <input
-                type="text"
-                value={formData.tractionOrStats}
-                onChange={(e) => setFormData({ ...formData, tractionOrStats: e.target.value })}
-                placeholder="e.g. $80K MRR, 30% MoM growth, 40 enterprise pilots"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Funding Ask / Target
-              </label>
-              <input
-                type="text"
-                value={formData.fundingAsk}
-                onChange={(e) => setFormData({ ...formData, fundingAsk: e.target.value })}
-                placeholder="e.g. $2,500,000 Seed"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Theme Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-              <Palette className="w-3.5 h-3.5 text-sky-400" /> Visual Deck Style & Palette
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {Object.values(DECK_THEMES).map((th) => (
-                <button
-                  key={th.id}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, themeId: th.id })}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                    formData.themeId === th.id
-                      ? "border-sky-400 bg-sky-500/15 ring-2 ring-sky-500/30"
-                      : "border-slate-800 bg-slate-900 hover:border-slate-700"
-                  }`}
-                >
-                  <div
-                    className="w-full h-5 rounded-md mb-1.5 border border-white/10"
-                    style={{ backgroundColor: th.bgColor }}
-                  />
-                  <span className="text-[11px] font-medium text-slate-300 truncate">
-                    {th.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Submit Button & Loader */}
-          <div className="pt-3">
-            {loading ? (
-              <div className="p-4 rounded-xl bg-sky-950/40 border border-sky-500/30 flex items-center gap-3 text-sky-300 text-sm">
-                <Loader2 className="w-5 h-5 animate-spin text-sky-400 flex-shrink-0" />
-                <span className="font-medium animate-pulse">{generationStep}</span>
-              </div>
-            ) : (
+          {/* 1-Click Example Presets */}
+          <div className="my-5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+              Quick Presets:
+            </span>
+            {PRESET_IDEAS.map((preset) => (
               <button
-                type="submit"
-                id="generate-deck-submit-btn"
-                className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:via-blue-500 hover:to-indigo-500 shadow-xl shadow-sky-500/20 hover:shadow-sky-500/40 transition-all flex items-center justify-center gap-2 text-base"
+                key={preset.name}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-500/20 hover:text-sky-600 dark:hover:text-sky-300 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 shadow-sm transition-colors"
               >
-                <Wand2 className="w-5 h-5" />
-                <span>Architect 10-Slide Deck with Gemini AI</span>
+                {preset.name}
               </button>
-            )}
+            ))}
           </div>
-        </form>
+
+          {/* Main Form */}
+          <form onSubmit={handleGenerate} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" /> Company / Project Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  placeholder="e.g. Synthetix AI"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" /> Industry & Domain *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.industry}
+                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                  placeholder="e.g. Enterprise AI, Fintech, HealthTech"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Problem */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> The Problem / Pain Point *
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={formData.problemStatement}
+                onChange={(e) => setFormData({ ...formData, problemStatement: e.target.value })}
+                placeholder="What urgent, expensive problem does your customer face? (e.g. Sales reps waste 68% of their time on manual CRM data entry...)"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm resize-none"
+              />
+            </div>
+
+            {/* Solution */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> Your Solution & Value Prop *
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={formData.solutionStatement}
+                onChange={(e) => setFormData({ ...formData, solutionStatement: e.target.value })}
+                placeholder="How do you solve this 10x better? (e.g. An autonomous multi-agent pipeline that handles outbound qualification and proposal generation 24/7...)"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" /> Traction or Key Metrics
+                </label>
+                <input
+                  type="text"
+                  value={formData.tractionOrStats}
+                  onChange={(e) => setFormData({ ...formData, tractionOrStats: e.target.value })}
+                  placeholder="e.g. $80K MRR, 30% MoM growth, 40 enterprise pilots"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" /> Funding Ask / Target
+                </label>
+                <input
+                  type="text"
+                  value={formData.fundingAsk}
+                  onChange={(e) => setFormData({ ...formData, fundingAsk: e.target.value })}
+                  placeholder="e.g. $2,500,000 Seed"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Theme Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" /> Visual Deck Style & Palette
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {Object.values(DECK_THEMES).map((th) => (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, themeId: th.id })}
+                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                      formData.themeId === th.id
+                        ? "border-sky-500 bg-sky-50 dark:bg-sky-500/15 ring-2 ring-sky-500/30"
+                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
+                  >
+                    <div
+                      className="w-full h-5 rounded-md mb-1.5 border border-slate-200 dark:border-white/10"
+                      style={{ backgroundColor: th.bgColor }}
+                    />
+                    <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate">
+                      {th.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit Button & Loader */}
+            <div className="pt-3">
+              {loading ? (
+                <div className="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/30 flex items-center gap-3 text-sky-700 dark:text-sky-300 text-sm">
+                  <Loader2 className="w-5 h-5 animate-spin text-sky-500 dark:text-sky-400 flex-shrink-0" />
+                  <span className="font-medium animate-pulse">{generationStep}</span>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  id="generate-deck-submit-btn"
+                  className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:via-blue-500 hover:to-indigo-500 shadow-xl shadow-sky-500/20 hover:shadow-sky-500/40 transition-all flex items-center justify-center gap-2 text-base cursor-pointer"
+                >
+                  <Wand2 className="w-5 h-5" />
+                  <span>Architect 10-Slide Deck with Gemini AI</span>
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
