@@ -6,7 +6,13 @@ const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function generatePitchDeckWithAI(params: GenerateDeckRequest): Promise<PitchDeck> {
-  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const candidateModels = [
+    process.env.GEMINI_MODEL,
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+  ].filter(Boolean) as string[];
 
   if (!genAI) {
     console.warn("GEMINI_API_KEY is not set. Generating intelligent structured deck fallback.");
@@ -187,28 +193,43 @@ Generate a JSON object strictly matching this TypeScript structure:
   ]
 }`;
 
-    const result = await model.generateContent(systemPrompt);
-    const text = result.response.text();
-    const parsed = JSON.parse(text);
+    for (const mName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: mName,
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7,
+          },
+        });
 
-    return {
-      id: generateId(),
-      title: parsed.title || `${params.companyName} Pitch Deck`,
-      companyName: params.companyName,
-      tagline: parsed.tagline || "Built with Pitch-Craft AI",
-      industry: params.industry,
-      targetAudience: parsed.targetAudience || "Angel & VC Investors",
-      fundingGoal: parsed.fundingGoal || params.fundingAsk || "$2,500,000",
-      themeId: params.themeId || "midnight",
-      slides: (parsed.slides || []).map((slide: Partial<Slide>, idx: number) => ({
-        ...slide,
-        id: slide.id || `slide-${idx + 1}`,
-        layout: slide.layout || (idx === 0 ? "title" : "problem"),
-        title: slide.title || `Slide ${idx + 1}`,
-      })),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+        const result = await model.generateContent(systemPrompt);
+        const text = result.response.text();
+        const parsed = JSON.parse(text);
+
+        return {
+          id: generateId(),
+          title: parsed.title || `${params.companyName} Pitch Deck`,
+          companyName: params.companyName,
+          tagline: parsed.tagline || "Built with Pitch-Craft AI",
+          industry: params.industry,
+          targetAudience: parsed.targetAudience || "Angel & VC Investors",
+          fundingGoal: parsed.fundingGoal || params.fundingAsk || "$2,500,000",
+          themeId: params.themeId || "midnight",
+          slides: (parsed.slides || []).map((slide: Partial<Slide>, idx: number) => ({
+            ...slide,
+            id: slide.id || `slide-${idx + 1}`,
+            layout: slide.layout || (idx === 0 ? "title" : "problem"),
+            title: slide.title || `Slide ${idx + 1}`,
+          })),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } catch (err) {
+        console.warn(`Model ${mName} attempt failed:`, err);
+      }
+    }
+    return generateFallbackDeck(params);
   } catch (error) {
     console.error("Gemini AI API Error:", error);
     return generateFallbackDeck(params);
