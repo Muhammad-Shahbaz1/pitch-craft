@@ -54,8 +54,8 @@ export default function HomePage() {
           <span>Next-Generation AI Pitch Deck Engine</span>
         </div>
 
-        {/* Enhanced Hero Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-display tracking-tight text-slate-900 dark:text-white max-w-5xl leading-[1.08] drop-shadow-sm">
+        {/* Professional Sans-Serif Hero Headline */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold font-display tracking-[-0.035em] text-slate-900 dark:text-white max-w-5xl leading-[1.08]">
           Craft Venture-Backed Pitch Decks in{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-300">
             Minutes, Not Weeks.
