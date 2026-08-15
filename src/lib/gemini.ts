@@ -222,7 +222,8 @@ export async function processAIAssist(req: AIAssistRequest): Promise<{ text?: st
     };
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   let prompt = "";
   if (req.action === "rewrite") {
