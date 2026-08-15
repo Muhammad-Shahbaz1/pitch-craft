@@ -6,12 +6,7 @@ const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function generatePitchDeckWithAI(params: GenerateDeckRequest): Promise<PitchDeck> {
-  const modelCandidates = [
-    process.env.GEMINI_MODEL || "gemini-2.0-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-  ];
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
   if (!genAI) {
     console.warn("GEMINI_API_KEY is not set. Generating intelligent structured deck fallback.");
