@@ -6,15 +6,21 @@ const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function generatePitchDeckWithAI(params: GenerateDeckRequest): Promise<PitchDeck> {
+  const currentKey = process.env.GEMINI_API_KEY || "";
+  const client = currentKey ? new GoogleGenerativeAI(currentKey) : null;
+
   const candidateModels = [
     process.env.GEMINI_MODEL,
-    "gemini-2.0-flash",
+    "gemini-3.7-flash",
+    "gemini-3.7-pro",
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
+    "gemini-2.0-flash",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
   ].filter(Boolean) as string[];
 
-  if (!genAI) {
+  if (!client) {
     console.warn("GEMINI_API_KEY is not set. Generating intelligent structured deck fallback.");
     return generateFallbackDeck(params);
   }
@@ -187,7 +193,7 @@ Generate a JSON object strictly matching this TypeScript structure:
 
     for (const mName of candidateModels) {
       try {
-        const model = genAI.getGenerativeModel({
+        const model = client.getGenerativeModel({
           model: mName,
           generationConfig: {
             responseMimeType: "application/json",
@@ -234,14 +240,17 @@ Generate a JSON object strictly matching this TypeScript structure:
 }
 
 export async function processAIAssist(req: AIAssistRequest): Promise<{ text?: string; slide?: Slide }> {
-  if (!genAI) {
+  const currentKey = process.env.GEMINI_API_KEY || "";
+  const client = currentKey ? new GoogleGenerativeAI(currentKey) : null;
+
+  if (!client) {
     return {
       text: "AI assistant processed your request: enhanced clarity, optimized tone for high investor conversion.",
     };
   }
 
-  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-  const model = genAI.getGenerativeModel({ model: modelName });
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.7-flash";
+  const model = client.getGenerativeModel({ model: modelName });
 
   let prompt = "";
   if (req.action === "rewrite") {
