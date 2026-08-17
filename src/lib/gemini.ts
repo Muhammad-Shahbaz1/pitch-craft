@@ -1,14 +1,16 @@
 import { GenerateDeckRequest, PitchDeck, Slide, AIAssistRequest } from "@/types/pitch";
 import { generateId } from "./utils";
 
-const candidateModels = [
-  process.env.GEMINI_MODEL,
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-flash-latest",
-  "gemini-pro-latest"
-].filter(Boolean) as string[];
+const candidateModels = Array.from(
+  new Set([
+    process.env.GEMINI_MODEL,
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.7-flash",
+    "gemini-flash-latest",
+    "gemini-pro-latest"
+  ].filter(Boolean))
+) as string[];
 
 async function callGeminiApi(prompt: string): Promise<any> {
   const apiKey = process.env.GEMINI_API_KEY || "";
