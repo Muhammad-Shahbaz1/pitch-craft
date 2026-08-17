@@ -1,26 +1,63 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GenerateDeckRequest, PitchDeck, Slide, AIAssistRequest } from "@/types/pitch";
 import { generateId } from "./utils";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const candidateModels = [
+  process.env.GEMINI_MODEL,
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-flash-latest",
+  "gemini-pro-latest"
+].filter(Boolean) as string[];
+
+async function callGeminiApi(prompt: string): Promise<any> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY not found.");
+  }
+
+  for (const model of candidateModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7
+          }
+        })
+      });
+
+      if (res.status === 200) {
+        const data = await res.json();
+        let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        if (text.startsWith("```json")) {
+          text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        } else if (text.startsWith("```")) {
+          text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
+        return JSON.parse(text);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.warn(`Model [${model}] status ${res.status}:`, errorData?.error?.message || errorData);
+      }
+    } catch (err: any) {
+      console.warn(`Model [${model}] call failed:`, err?.message || err);
+    }
+  }
+
+  throw new Error("All Gemini candidate models failed to respond.");
+}
 
 export async function generatePitchDeckWithAI(params: GenerateDeckRequest): Promise<PitchDeck> {
-  const currentKey = process.env.GEMINI_API_KEY || "";
-  const client = currentKey ? new GoogleGenerativeAI(currentKey) : null;
-
-  const candidateModels = [
-    process.env.GEMINI_MODEL,
-    "gemini-3.7-flash",
-    "gemini-3.7-pro",
-    "gemini-3.5-flash",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-  ].filter(Boolean) as string[];
-
-  if (!client) {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
     console.warn("GEMINI_API_KEY is not set. Generating intelligent structured deck fallback.");
     return generateFallbackDeck(params);
   }
@@ -124,7 +161,7 @@ Generate a JSON object strictly matching this TypeScript structure:
       "subtitle": "string",
       "metrics": [
         { "id": "tr1", "label": "Current Growth", "value": "35% MoM", "description": "Compounding monthly" },
-        { "id": "tr2", "label": "Active Pipeline", value: "$1.4M", "description": "Qualified Enterprise deals" },
+        { "id": "tr2", "label": "Active Pipeline", "value": "$1.4M", "description": "Qualified Enterprise deals" },
         { "id": "tr3", "label": "Retention Rate", "value": "96%", "description": "Industry leading stickiness" }
       ],
       "chartData": {
@@ -191,48 +228,26 @@ Generate a JSON object strictly matching this TypeScript structure:
   ]
 }`;
 
-    for (const mName of candidateModels) {
-      try {
-        const model = client.getGenerativeModel({
-          model: mName,
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          },
-        });
+    const parsed = await callGeminiApi(systemPrompt);
 
-        const result = await model.generateContent(systemPrompt);
-        let text = result.response.text().trim();
-        if (text.startsWith("```json")) {
-          text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-        } else if (text.startsWith("```")) {
-          text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
-        }
-        const parsed = JSON.parse(text);
-
-        return {
-          id: generateId(),
-          title: parsed.title || `${params.companyName} Pitch Deck`,
-          companyName: params.companyName,
-          tagline: parsed.tagline || "Built with Pitch-Craft AI",
-          industry: params.industry,
-          targetAudience: parsed.targetAudience || "Angel & VC Investors",
-          fundingGoal: parsed.fundingGoal || params.fundingAsk || "$2,500,000",
-          themeId: params.themeId || "midnight",
-          slides: (parsed.slides || []).map((slide: Partial<Slide>, idx: number) => ({
-            ...slide,
-            id: slide.id || `slide-${idx + 1}`,
-            layout: slide.layout || (idx === 0 ? "title" : "problem"),
-            title: slide.title || `Slide ${idx + 1}`,
-          })),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-      } catch (err) {
-        console.warn(`Model ${mName} attempt failed:`, err);
-      }
-    }
-    return generateFallbackDeck(params);
+    return {
+      id: generateId(),
+      title: parsed.title || `${params.companyName} Pitch Deck`,
+      companyName: params.companyName,
+      tagline: parsed.tagline || "Built with Pitch-Craft AI",
+      industry: params.industry,
+      targetAudience: parsed.targetAudience || "Angel & VC Investors",
+      fundingGoal: parsed.fundingGoal || params.fundingAsk || "$2,500,000",
+      themeId: params.themeId || "midnight",
+      slides: (parsed.slides || []).map((slide: Partial<Slide>, idx: number) => ({
+        ...slide,
+        id: slide.id || `slide-${idx + 1}`,
+        layout: slide.layout || (idx === 0 ? "title" : "problem"),
+        title: slide.title || `Slide ${idx + 1}`,
+      })),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
   } catch (error) {
     console.error("Gemini AI API Error:", error);
     return generateFallbackDeck(params);
@@ -240,17 +255,12 @@ Generate a JSON object strictly matching this TypeScript structure:
 }
 
 export async function processAIAssist(req: AIAssistRequest): Promise<{ text?: string; slide?: Slide }> {
-  const currentKey = process.env.GEMINI_API_KEY || "";
-  const client = currentKey ? new GoogleGenerativeAI(currentKey) : null;
-
-  if (!client) {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
     return {
       text: "AI assistant processed your request: enhanced clarity, optimized tone for high investor conversion.",
     };
   }
-
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.7-flash";
-  const model = client.getGenerativeModel({ model: modelName });
 
   let prompt = "";
   if (req.action === "rewrite") {
@@ -268,199 +278,221 @@ Generate 3 tough, probing, realistic questions you would ask a founder on this s
 Company: ${req.deckContext.companyName} (${req.deckContext.industry})
 Slide Title: ${req.slide.title}
 Slide Content: ${JSON.stringify(req.slide.contentPoints || [])}
-Slide Metrics: ${JSON.stringify(req.slide.metrics || [])}
 
-Return a JSON array format: [{"question": "string", "suggestedAnswer": "string"}]`;
-  } else if (req.action === "speaker-notes") {
-    prompt = `Write a high-impact, natural, conversational 45-second spoken script for the founder presenting this slide.
-Company: ${req.deckContext.companyName}
-Slide Title: ${req.slide.title}
-Slide Subtitle: ${req.slide.subtitle || ""}
-Points: ${JSON.stringify(req.slide.contentPoints || [])}
-
-Keep it punchy, authentic, and confident.`;
+Return a JSON format: {"questions": [{"question": "string", "suggestedAnswer": "string"}]}`;
+  } else {
+    prompt = `Review this slide content and provide 2 bullet point suggestions on how to make it 10x more compelling to investors.
+Slide: ${req.slide.title} - ${JSON.stringify(req.slide.contentPoints || [])}
+Return JSON format: {"feedback": "string"}`;
   }
 
   try {
-    const res = await model.generateContent(prompt);
-    const output = res.response.text();
-
-    if (req.action === "speaker-notes") {
-      return { text: output };
+    const data = await callGeminiApi(prompt);
+    if (req.action === "rewrite" && data.title) {
+      return {
+        slide: {
+          ...req.slide,
+          title: data.title || req.slide.title,
+          subtitle: data.subtitle || req.slide.subtitle,
+          contentPoints: data.contentPoints || req.slide.contentPoints,
+        },
+      };
+    } else if (req.action === "investor-questions" && data.questions) {
+      return {
+        slide: {
+          ...req.slide,
+          simulatedInvestorQuestions: data.questions,
+        },
+      };
+    } else {
+      return {
+        text: data.feedback || JSON.stringify(data),
+      };
     }
-
-    try {
-      const cleanJson = output.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
-      if (req.action === "investor-questions") {
-        return {
-          slide: {
-            ...req.slide,
-            simulatedInvestorQuestions: parsed,
-          },
-        };
-      } else if (req.action === "rewrite") {
-        return {
-          slide: {
-            ...req.slide,
-            title: parsed.title || req.slide.title,
-            subtitle: parsed.subtitle || req.slide.subtitle,
-            contentPoints: parsed.contentPoints || req.slide.contentPoints,
-          },
-        };
-      }
-    } catch {
-      return { text: output };
-    }
-  } catch (err) {
-    console.error("AI Assist error:", err);
+  } catch (error) {
+    console.error("AI Assist API Error:", error);
+    return {
+      text: "AI analysis complete. Focus heavily on defensible data moats and distribution speed.",
+    };
   }
-
-  return { text: "Generated AI improvement." };
 }
 
 function generateFallbackDeck(params: GenerateDeckRequest): PitchDeck {
-  const company = params.companyName || "InnovateX";
-  const industry = params.industry || "AI & Enterprise Software";
-  const problem = params.problemStatement || "Modern teams lose 40% of their operational velocity dealing with fragmented tools and high friction.";
-  const solution = params.solutionStatement || "An automated intelligent platform that streamlines workflows and unlocks 10x team output.";
-  const ask = params.fundingAsk || "$2,500,000 Seed Round";
-
+  const id = generateId();
   return {
-    id: generateId(),
-    title: `${company} Investor Presentation`,
-    companyName: company,
-    tagline: `Transforming ${industry} with Next-Gen Intelligence`,
-    industry: industry,
-    targetAudience: "Venture Capital & Strategic Angels",
-    fundingGoal: ask,
+    id,
+    title: `${params.companyName} Pitch Deck`,
+    companyName: params.companyName,
+    tagline: `Next-generation AI solution transforming ${params.industry}.`,
+    industry: params.industry,
+    targetAudience: params.targetMarket || "Seed & Series A Investors",
+    fundingGoal: params.fundingAsk || "$2,500,000",
     themeId: params.themeId || "midnight",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
     slides: [
       {
         id: "slide-1",
         layout: "title",
-        title: company,
-        subtitle: `Transforming ${industry}`,
-        tagline: "The modern platform for high-velocity scalable operations",
-        speakerNotes: `Welcome everyone. Today we are excited to introduce ${company}, where we are reimagining the future of ${industry}.`
+        title: params.companyName,
+        subtitle: `Architecting the future of ${params.industry}`,
+        tagline: "Venture-grade presentation deck built with Pitch-Craft AI",
+        speakerNotes: `Welcome investors. Today I'm excited to present ${params.companyName}. We are solving a massive bottleneck in ${params.industry}.`,
       },
       {
         id: "slide-2",
         layout: "problem",
-        title: "The Core Problem",
-        subtitle: "Existing solutions are slow, expensive, and fail to scale",
+        title: "The Problem",
+        subtitle: "A massive, urgent pain point costing businesses millions",
         contentPoints: [
-          problem,
-          "Teams waste 15+ hours each week on repetitive overhead and manual reconciliation.",
-          "High switching costs and legacy software lock-in restrict productivity and eat into profit margins."
+          params.problemStatement || "Legacy workflows cause 65% loss in operational efficiency across teams.",
+          "High manual overhead and reliance on disjointed point solutions creates security & compliance debt.",
+          "Incumbents are too slow, legacy-bound, and unable to adapt to modern enterprise demands."
         ],
         metrics: [
-          { id: "m1", label: "Lost Productivity", value: "38%", description: "Reported by enterprise leads" },
-          { id: "m2", label: "Cost Inefficiency", value: "3.2x", description: "Compared to modern workflows" }
+          { id: "m1", label: "Productivity Loss", value: "65%", description: "Spent on manual legacy tasks" },
+          { id: "m2", label: "Annual Waste", value: "$4.2M", description: "Per mid-sized enterprise" }
         ],
-        speakerNotes: "Highlight the urgency of this problem. Customers are actively feeling this pain every single day."
+        speakerNotes: "Start by walking investors through the acute pain point your customers experience every day.",
+        simulatedInvestorQuestions: [
+          {
+            question: "Why now? Why haven't incumbents solved this problem?",
+            suggestedAnswer: "Legacy systems have high technical debt and architectural lock-in, leaving a clear wedge for our AI-native engine."
+          }
+        ]
       },
       {
         id: "slide-3",
         layout: "solution",
-        title: "The Solution",
-        subtitle: solution,
+        title: "Our Solution",
+        subtitle: "10x faster, automated, and built for modern scale",
         contentPoints: [
-          "Seamless Integration: Deploy in minutes with zero disruption to existing tech stacks.",
-          "Automated Workflows: Intelligent triggers eliminate 80% of routine human bottlenecks.",
-          "Actionable Insights: Real-time intelligence and predictive analytics built into every layer."
+          params.solutionStatement || `An autonomous AI platform specifically engineered for ${params.industry}.`,
+          "Drastically reduces time-to-value from months to minutes with zero-configuration workflows.",
+          "Delivers verified deterministic outcomes with complete enterprise audit trails."
         ],
         metrics: [
-          { id: "m3", label: "Efficiency Gain", value: "10x", description: "Faster execution cycle" },
-          { id: "m4", label: "ROI Payback", value: "< 60 Days", description: "Immediate time-to-value" }
+          { id: "m3", label: "Efficiency Boost", value: "10x", description: "Faster time to completion" }
         ],
-        speakerNotes: "Explain why our approach is fundamentally 10x better, not just 10% cheaper."
+        speakerNotes: "Highlight your unique technical wedge and unfair advantage over traditional approaches."
       },
       {
         id: "slide-4",
         layout: "market",
         title: "Market Opportunity",
-        subtitle: "Rapidly expanding multi-billion dollar category",
+        subtitle: "Massive and rapidly growing addressable market",
         marketSize: {
-          tam: "$38.5 Billion",
-          tamDesc: `Global market for modern ${industry} solutions by 2029`,
-          sam: "$9.2 Billion",
-          samDesc: "Target segment across North America & high-growth tech hubs",
-          som: "$1.1 Billion",
-          somDesc: "Initial target addressable customer base in years 1-3"
+          tam: "$68 Billion",
+          tamDesc: `Total global spend across ${params.industry}`,
+          sam: "$18 Billion",
+          samDesc: "Serviceable available market in North America & Europe",
+          som: "$2.4 Billion",
+          somDesc: "Initial target segment (mid-market tech and high-growth innovators)"
         },
-        speakerNotes: "Walk through our bottom-up market sizing showing clear customer demand."
+        speakerNotes: "Show how the initial wedge segment naturally expands into a multi-billion dollar total addressable market."
       },
       {
         id: "slide-5",
         layout: "product",
         title: "Product Architecture",
-        subtitle: "Purpose-built for speed, security, and developer joy",
+        subtitle: "Enterprise-grade reliability and seamless integration",
         contentPoints: [
-          "Modular Core: Extendable architecture with rich open APIs and webhook integrations.",
-          "Enterprise Security: End-to-end encryption, SOC2 ready, and role-based access control.",
-          "Intuitive Experience: Beautiful, frictionless interface requiring zero employee training."
+          "Plug-and-play API connectors into existing data sources and enterprise tools.",
+          "Proprietary fine-tuned AI reasoning models delivering superior accuracy.",
+          "SOC-2 compliant end-to-end encryption with tenant data isolation."
         ],
-        speakerNotes: "Showcase the product UI and emphasize our defensible technology moat."
+        speakerNotes: "Walk through the high-level system architecture and defensible data flywheel."
       },
       {
         id: "slide-6",
-        layout: "traction",
-        title: "Traction & Early Velocity",
-        subtitle: "Strong organic pull and rapid revenue acceleration",
-        metrics: [
-          { id: "t1", label: "MoM Growth", value: "32%", change: "+8% vs last quarter" },
-          { id: "t2", label: "Active Users", value: "14,500+", change: "Growing organically" },
-          { id: "t3", label: "Net Retention", value: "128%", change: "High customer stickiness" }
+        layout: "business-model",
+        title: "Business Model",
+        subtitle: "Predictable, high-margin SaaS subscription & usage expansion",
+        contentPoints: [
+          "Tiered subscription model based on active seats and compute capacity.",
+          "Net Revenue Retention (NRR) driven by organic departmental expansion.",
+          "Strong gross margins supported by optimized AI infrastructure routing."
         ],
-        chartData: {
-          type: "area",
-          title: "Cumulative Growth Trajectory",
-          data: [
-            { name: "Month 1", value: 12 },
-            { name: "Month 3", value: 35 },
-            { name: "Month 6", value: 92 },
-            { name: "Month 9", value: 210 },
-            { name: "Month 12", value: 450 }
-          ]
-        },
-        speakerNotes: "Highlight how our low CAC and viral referral loops drive sustainable growth."
+        metrics: [
+          { id: "bm1", label: "Gross Margin", value: "84%", description: "High leverage software margin" },
+          { id: "bm2", label: "Target LTV/CAC", value: "5.2x", description: "World-class capital efficiency" }
+        ],
+        speakerNotes: "Demonstrate strong unit economics and clear path to profitability."
       },
       {
         id: "slide-7",
-        layout: "competition",
-        title: "Competitive Landscape",
-        subtitle: `How ${company} compares to existing market alternatives`,
-        competitors: {
-          ourName: company,
-          competitorNames: ["Legacy Vendors", "Point Solutions", "Spreadsheets & Manual"],
-          rows: [
-            { feature: "AI-First Native Workflow", us: true, comp1: false, comp2: "Partial", comp3: false },
-            { feature: "Real-Time Collaboration", us: true, comp1: false, comp2: true, comp3: false },
-            { feature: "Setup Under 10 Minutes", us: true, comp1: false, comp2: false, comp3: true },
-            { feature: "Predictive Analytics", us: true, comp1: "Partial", comp2: false, comp3: false }
+        layout: "traction",
+        title: "Traction & Velocity",
+        subtitle: "Exceptional month-over-month compounding momentum",
+        metrics: [
+          { id: "tr1", label: "MoM Growth", value: "32%", description: "Compounding monthly velocity" },
+          { id: "tr2", label: "Active Pilots", value: "45+", description: "Enterprise and mid-market accounts" },
+          { id: "tr3", label: "Net Retention", value: "135%", description: "Organic expansion rate" }
+        ],
+        chartData: {
+          type: "area",
+          title: "Projected ARR Trajectory ($k)",
+          data: [
+            { name: "Q1", value: 40 },
+            { name: "Q2", value: 120 },
+            { name: "Q3", value: 310 },
+            { name: "Q4", value: 680 },
+            { name: "Year 2", value: 1950 }
           ]
         },
-        speakerNotes: "Focus on our unique differentiation and why customers switch from incumbents."
+        speakerNotes: "Highlight evidence of genuine product-market fit and customer love."
       },
       {
         id: "slide-8",
+        layout: "competition",
+        title: "Competitive Advantage",
+        subtitle: "Defensible moat and clear differentiation",
+        competitors: {
+          ourName: params.companyName,
+          competitorNames: ["Legacy Platforms", "Point Solutions", "In-House Development"],
+          rows: [
+            { feature: "AI-Native Automation", us: true, comp1: false, comp2: "Partial", comp3: false },
+            { feature: "Time-to-Value (<10 Mins)", us: true, comp1: false, comp2: false, comp3: false },
+            { feature: "Enterprise Security & Isolation", us: true, comp1: true, comp2: false, comp3: "Partial" },
+            { feature: "Lowest Total Cost of Ownership", us: true, comp1: false, comp2: true, comp3: false }
+          ]
+        },
+        speakerNotes: "Explain clearly why your startup wins head-to-head against both incumbents and new entrants."
+      },
+      {
+        id: "slide-9",
+        layout: "team",
+        title: "Leadership Team",
+        subtitle: "Proven operators with deep domain mastery",
+        teamMembers: [
+          { id: "t1", name: "Founding CEO", role: "Chief Executive Officer", bio: "Repeat tech founder with prior successful exit; ex-growth operator." },
+          { id: "t2", name: "Founding CTO", role: "Chief Technology Officer", bio: "Former Senior AI Architect at Big Tech; published ML researcher." },
+          { id: "t3", name: "VP of Product", role: "Head of Product", bio: "Led product teams through $0 to $20M ARR hyper-growth." }
+        ],
+        speakerNotes: "Showcase why this is the exact team uniquely equipped to win this market."
+      },
+      {
+        id: "slide-10",
         layout: "the-ask",
         title: "The Investment Ask",
-        subtitle: `Raising ${ask} to accelerate engineering and go-to-market`,
+        subtitle: `Raising ${params.fundingAsk || "$2,500,000"} to accelerate market leadership`,
         contentPoints: [
-          "50% Product & Engineering: Deepen proprietary feature moat and AI infrastructure.",
-          "35% Go-To-Market: Scale performance acquisition channels and enterprise direct sales.",
-          "15% Operations & Working Capital: Compliance, talent acquisition, and infrastructure."
+          "55% Engineering & AI Infrastructure: Expand core autonomous pipelines and fine-tuned models.",
+          "30% Go-To-Market & Sales: Scale outbound motions and enterprise customer acquisition.",
+          "15% Operations, Security & Compliance: Global expansion and partner integrations."
         ],
         metrics: [
-          { id: "a1", label: "Target Raise", value: ask, description: "Seed financing round" },
-          { id: "a2", label: "Target Runway", value: "20-24 Mo", description: "To next key valuation inflection" }
+          { id: "a1", label: "Round Target", value: params.fundingAsk || "$2.5M", description: "Seed / Seed-Extension Round" },
+          { id: "a2", label: "Target Runway", value: "24 Months", description: "Reaching $3.5M+ ARR milestone" }
         ],
-        speakerNotes: `Thank you for your time. We'd love to partner with you to make ${company} the definitive leader in ${industry}.`
+        speakerNotes: "Close with conviction on your vision and use of capital.",
+        simulatedInvestorQuestions: [
+          {
+            question: "What is your main milestone to reach before raising Series A?",
+            suggestedAnswer: "We will cross $3.5M in high-retention ARR with at least 100 enterprise logos within 18 months."
+          }
+        ]
       }
-    ]
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 }
